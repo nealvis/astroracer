@@ -234,23 +234,33 @@ TitleStart:
     //jsr StarStart
 
     // set up ship 1 to rotate around the top of the screen
-    nv_store16_immed(ship_1.x_loc, 50)
-    lda #47
-    sta ship_1.y_loc
-    lda #0
-    sta ship_1.y_vel
-    lda #2 
-    sta ship_1.x_vel
+    //nv_store16_immed(ship_1.x_loc, 50)
+    nv_store16_immed(ship_1.x_loc_fp124s, NvBuildClosest124s(50))
+    //lda #47
+    //sta ship_1.y_loc
+    nv_store16_immed(ship_1.y_loc_fp124s, NvBuildClosest124s(47))
+    //lda #0
+    //sta ship_1.y_vel
+    nv_store16_immed(ship_1.y_vel_fp124s, NvBuildClosest124s(0))
+    //lda #2 
+    //sta ship_1.x_vel
+    nv_store16_immed(ship_1.x_vel_fp124s, NvBuildClosest124s(2))
+
     jsr ship_1.Enable
 
     // set up ship 2 to rotate around the bottom of the screen
-    nv_store16_immed(ship_2.x_loc, 50)
-    lda #232
-    sta ship_2.y_loc
-    lda #0
-    sta ship_2.y_vel
-    lda #2 
-    sta ship_2.x_vel
+    //nv_store16_immed(ship_2.x_loc, 50)
+    nv_store16_immed(ship_2.x_loc_fp124s, NvBuildClosest124s(50))
+    //lda #232
+    //sta ship_2.y_loc
+    nv_store16_immed(ship_2.y_loc_fp124s, NvBuildClosest124s(232))
+    //lda #0
+    //sta ship_2.y_vel
+    nv_store16_immed(ship_2.y_vel_fp124s, NvBuildClosest124s(0))
+    //lda #2 
+    //sta ship_2.x_vel
+    nv_store16_immed(ship_2.x_vel_fp124s, NvBuildClosest124s(2))
+
     jsr ship_2.SetColorAlive
     jsr ship_2.Enable
 

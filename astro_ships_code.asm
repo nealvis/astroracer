@@ -13,27 +13,47 @@
 #import "../nv_c64_util/nv_sprite_raw_collisions_code.asm"
 
 // max and min speed for ships when inc/dec speed
-.const SHIP_MAX_SPEED = 5
-.const SHIP_MIN_SPEED = -5
-
+.const SHIP_MAX_SPEED_16S = 5
+.const SHIP_MIN_SPEED_16S = -5
+.const SHIP_INC_VAL_16S = 1
+.const SHIP_DEC_VAL_16S = -1
+.const SHIP_MAX_SPEED_FP124S = NvBuildClosest124s(SHIP_MAX_SPEED_16S)
+.const SHIP_MIN_SPEED_FP124S = NvBuildClosest124s(SHIP_MIN_SPEED_16S)
+.const SHIP_INC_VAL_FP124S = NvBuildClosest124s(SHIP_INC_VAL_16S)
+.const SHIP_DEC_VAL_FP124S = NvBuildClosest124s(SHIP_DEC_VAL_16S)
+.const SHIP_MAX_SPEED_FOR_INC = NvBuildClosest124s(SHIP_MAX_SPEED_16S - SHIP_INC_VAL_16S)
+.const SHIP_MIN_SPEED_FOR_DEC = NvBuildClosest124s(SHIP_MIN_SPEED_16S - (SHIP_DEC_VAL_16S))
 //////////////////////////////////////////////////////////////////////////////
 // namespace with everything related to ship sprite
 .namespace ship_1
 {
-        .var info = nv_sprite_info_struct("ship_1", 0,
-                                          22, 50, 3, 1,  // init x, y, VelX, VelY 
+        .var info = nv_sprite_info_struct("ship_1", // sprite name 
+                                          0,   // system sprite num
+                                          NvBuildClosest124s(22),  // x loc
+                                          NvBuildClosest124s(50),  // y loc
+                                          NvBuildClosest124s(3),   // vel x
+                                          NvBuildClosest124s(1),   // vel y 
                                           sprite_ship, 
                                           sprite_extra, 
-                                          1, 0, 1, 0,   // bounce on top, left, bottom, right  
-                                          0, 0, 75, 0,  // min/max top, left, bottom, right
-                                          0,            // sprite enabled 
-                                          6, 4, 19, 16) // hitbox left, top, right, bottom
+                                          1,  // action top 
+                                          0,  // action left 
+                                          1,  // action bottom
+                                          0,  // action right  
+                                          NvBuildClosest124s(0),  // min top 
+                                          NvBuildClosest124s(0),  // min left
+                                          NvBuildClosest124s(75), // max bottom
+                                          NvBuildClosest124s(0),  // max right
+                                          0,  // sprite enabled 
+                                          6,  // hitbox left
+                                          4,  // hitbox top 
+                                          19, // hitbox right
+                                          16) // hitbox bottom
 
         .var sprite_num = info.num
-        .label x_loc = info.base_addr + NV_SPRITE_X_OFFSET
-        .label y_loc = info.base_addr + NV_SPRITE_Y_OFFSET
-        .label x_vel = info.base_addr + NV_SPRITE_VEL_X_OFFSET
-        .label y_vel = info.base_addr + NV_SPRITE_VEL_Y_OFFSET
+        .label x_loc_fp124s = info.base_addr + NV_SPRITE_X_FP124S_OFFSET
+        .label y_loc_fp124s = info.base_addr + NV_SPRITE_Y_FP124S_OFFSET
+        .label x_vel_fp124s = info.base_addr + NV_SPRITE_VEL_X_FP124S_OFFSET
+        .label y_vel_fp124s = info.base_addr + NV_SPRITE_VEL_Y_FP124S_OFFSET
         .label data_ptr = info.base_addr + NV_SPRITE_DATA_PTR_OFFSET
         .label base_addr = info.base_addr
 
@@ -63,6 +83,7 @@ SetLocationFromExtraData:
 Setup:
         lda #>info.base_addr
         ldx #<info.base_addr
+.break
         jsr NvSpriteSetupFromExtra
         rts
 
@@ -70,11 +91,11 @@ Setup:
 // this will not update the sprite registers to actually move the sprite, but
 // to do that just call SetShipeLocFromMem
 MoveInExtraData:
-        //lda #>info.base_addr
-        //ldx #<info.base_addr
-        //jsr NvSpriteMoveInExtra
-        //rts
-        nv_sprite_move_any_direction_sr(info)
+        lda #>info.base_addr
+        ldx #<info.base_addr
+        jsr NvSpriteMoveInExtra
+        rts
+        //nv_sprite_move_any_direction_sr(info)
 
 Enable:
         lda #>info.base_addr
@@ -126,25 +147,27 @@ temp_label: .text @"coll reg: \$00"
 
 DecVelX:
 {
-    //nv_debug_print_labeled_byte_mem(10, 0, label_vel_x_str, 7, ship_1.x_vel, true, false)
-    dec ship_1.x_vel        // decrement ship speed
-    bpl DoneDecVelX         // if its not zero yet then skip setting to max
-    inc ship_1.x_vel
+    nv_blt124s_immed_far(nv_sprite_vel_x_fp124s_addr(info), SHIP_MIN_SPEED_FOR_DEC, DoneDecVelX)
+    nv_adc124s(nv_sprite_vel_x_fp124s_addr(info), DecValFp124s, nv_sprite_vel_x_fp124s_addr(info), temp1, temp2, false)
 DoneDecVelX:
     rts
+DecValFp124s: .word SHIP_DEC_VAL_FP124S
+temp1: .word $0000
+temp2: .word $0000
 }
 
 
 IncVelX:
 {
-    //nv_debug_print_labeled_byte_mem(10, 0, label_vel_x_str, 7, ship_1.x_vel, true, false)
-    lda ship_1.x_vel        // decrement ship speed
-    cmp #SHIP_MAX_SPEED         // if its not zero yet then skip setting to max
-    beq DoneIncVelX
-    inc ship_1.x_vel
+    nv_bgt124s_immed_far(nv_sprite_vel_x_fp124s_addr(info), SHIP_MAX_SPEED_FOR_INC, DoneIncVelX)
+    nv_adc124s(nv_sprite_vel_x_fp124s_addr(info), IncValFp124s, nv_sprite_vel_x_fp124s_addr(info), temp1, temp2, false)
 DoneIncVelX:
     rts
+IncValFp124s: .word SHIP_INC_VAL_FP124S
+temp1: .word $0000
+temp2: .word $0000
 }
+
 //////////////////////////////////////////////////////////////////////////////
 // x and y reg have x and y screen loc for the char to check the sprite 
 // location against.  it doesn't matter what character is at the location
@@ -176,20 +199,33 @@ rect2: .word $0000, $0000  // (left, top)
 // namespace with everything related to ship sprite
 .namespace ship_2
 {
-    .var info = nv_sprite_info_struct("ship_2", 7,  // sprite name, number
-                                        22, 210, 3, 1,  // init x, y, VelX, VelY 
-                                        sprite_ship, 
-                                        sprite_extra, 
-                                        1, 0, 1, 0,   // bounce on top, left, bottom, right  
-                                        200, 0, 0, 0, // min/max top, left, bottom, right
-                                        0,            // sprite enabled 
-                                        6, 4, 19, 16) // hitbox left, top, right, bottom
+    .var info = nv_sprite_info_struct("ship_2", // sprite name
+                                      7,   // system sprite num
+                                      NvBuildClosest124s(22),  // x loc
+                                      NvBuildClosest124s(210), // y loc
+                                      NvBuildClosest124s(3),   // vel x
+                                      NvBuildClosest124s(1),   // vel y 
+                                      sprite_ship, 
+                                      sprite_extra, 
+                                      1, // action top 
+                                      0, // action left
+                                      1, // action bottom
+                                      0, // action right  
+                                      NvBuildClosest124s(200), // min top
+                                      NvBuildClosest124s(0),   // min left
+                                      NvBuildClosest124s(0),   // max bottom
+                                      NvBuildClosest124s(0),   // max right
+                                      0,            // sprite enabled 
+                                      6,  // hitbox left
+                                      4,  // hitbox top
+                                      19, // hitbox right
+                                      16) // hitbox bottom
 
     .var sprite_num = info.num
-    .label x_loc = info.base_addr + NV_SPRITE_X_OFFSET
-    .label y_loc = info.base_addr + NV_SPRITE_Y_OFFSET
-    .label x_vel = info.base_addr + NV_SPRITE_VEL_X_OFFSET
-    .label y_vel = info.base_addr + NV_SPRITE_VEL_Y_OFFSET
+    .label x_loc_fp124s = info.base_addr + NV_SPRITE_X_FP124S_OFFSET
+    .label y_loc_fp124s = info.base_addr + NV_SPRITE_Y_FP124S_OFFSET
+    .label x_vel_fp124s = info.base_addr + NV_SPRITE_VEL_X_FP124S_OFFSET
+    .label y_vel_fp124s = info.base_addr + NV_SPRITE_VEL_Y_FP124S_OFFSET
     .label data_ptr = info.base_addr + NV_SPRITE_DATA_PTR_OFFSET
     .label base_addr = info.base_addr
     .label sprite_extra_addr = info.base_addr
@@ -230,11 +266,11 @@ Setup:
 // this will not update the sprite registers to actually move the sprite, but
 // to do that just call SetShipeLocFromMem
 MoveInExtraData:
-        //lda #>info.base_addr
-        //ldx #<info.base_addr
-        //jsr NvSpriteMoveInExtra
-        //rts
-        nv_sprite_move_any_direction_sr(info)
+        lda #>info.base_addr
+        ldx #<info.base_addr
+        jsr NvSpriteMoveInExtra
+        rts
+        //nv_sprite_move_any_direction_sr(info)
 
 Enable:
         lda #>info.base_addr
@@ -285,23 +321,25 @@ CheckShipCollision:
 
 DecVelX:
 {
-    //nv_debug_print_labeled_byte_mem(10, 0, label_vel_x_str, 7, ship_2.x_vel, true, false)
-    dec ship_2.x_vel        // decrement ship speed
-    bpl DoneShip2DecVelX         // if its not zero yet then skip setting to max
-    inc ship_2.x_vel
-DoneShip2DecVelX:
+    nv_blt124s_immed_far(nv_sprite_vel_x_fp124s_addr(info), SHIP_MIN_SPEED_FOR_DEC, DoneDecVelX)
+    nv_adc124s(nv_sprite_vel_x_fp124s_addr(info), DecValFp124s, nv_sprite_vel_x_fp124s_addr(info), temp1, temp2, false)
+DoneDecVelX:
     rts
+DecValFp124s: .word SHIP_DEC_VAL_FP124S
+temp1: .word $0000
+temp2: .word $0000
 }
+
 
 IncVelX:
 {
-    //nv_debug_print_labeled_byte_mem(10, 0, label_vel_x_str, 7, ship_2.x_vel, true, false)
-    lda ship_2.x_vel        // decrement ship speed
-    cmp #SHIP_MAX_SPEED         // if its not zero yet then skip setting to max
-    beq DoneShip2IncVelX
-    inc ship_2.x_vel
-DoneShip2IncVelX:
+    nv_bgt124s_immed_far(nv_sprite_vel_x_fp124s_addr(info), SHIP_MAX_SPEED_FOR_INC, DoneIncVelX)
+    nv_adc124s(nv_sprite_vel_x_fp124s_addr(info), IncValFp124s, nv_sprite_vel_x_fp124s_addr(info), temp1, temp2, false)
+DoneIncVelX:
     rts
+IncValFp124s: .word SHIP_INC_VAL_FP124S
+temp1: .word $0000
+temp2: .word $0000
 }
 
 

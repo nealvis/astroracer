@@ -23,6 +23,7 @@
 // subroutine to start the initialize effect, call once before main loop
 HoleInit:
 {
+/*  NPS DEBUGGING
     // reduce velocity while count greater than 0
     lda #$00
     sta hole_count
@@ -30,7 +31,7 @@ HoleInit:
 
     jsr blackhole.Setup
     jsr blackhole.SetLocationFromExtraData
-
+*/
     rts
 }
 
@@ -38,6 +39,7 @@ HoleInit:
 // subroutine to start the effect
 HoleStart:
 {
+/* NPS DEBUGGING   
     lda hole_count
     bne HoleAlreadyStarted
     lda #HOLE_FRAMES
@@ -50,16 +52,20 @@ HoleStart:
     lda #>sprite_hole_0
     jsr blackhole.SetDataPtr
 
-    nv_store16_immed(blackhole.x_loc, NV_SPRITE_RIGHT_WRAP_DEFAULT)
+    nv_store16_immed(blackhole.x_loc_fp124s, NV_SPRITE_RIGHT_WRAP_FP124S_DEFAULT)
     //lda #NV_SPRITE_TOP_WRAP_DEFAULT
     nv_rand_byte_a(true)
-    //and #$7F
-    clc
-    adc #NV_SPRITE_TOP_WRAP_DEFAULT
+    sta random_y_fp124s 
+    lda #$00
+    sta random_y_fp124s+1
+    nv_conv16u_mem124u(random_y_fp124s, random_y_fp124s)
+    //clc
+    //adc #NV_SPRITE_TOP_WRAP_FP124S_DEFAULT
+    nv_adc124s_mem124s_immed124s_op1Pos_immedPos(random_y_fp124s, NV_SPRITE_TOP_WRAP_FP124S_DEFAULT, blackhole.y_loc_fp124s, false)
 
     // set Y velocity.  start with positive 1 but 
     // get random bit to decide to change
-    sta blackhole.y_loc
+    //sta blackhole.y_loc
     lda #1
     sta blackhole.y_vel
     nv_rand_byte_a(true)
@@ -75,7 +81,10 @@ SkipNegVelY:
 
     jsr blackhole.Enable
 HoleAlreadyStarted:
+*/
     rts
+random_y_fp124s: .word $0000
+
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -83,7 +92,11 @@ HoleAlreadyStarted:
 // Accum: will be set to non zero if active or zero if not active
 HoleActive:
 {
+/*  NPS DEUBUGGINB    
     lda hole_count
+*/
+    // nps debugging hard code to not active
+    lda #$00
     rts
 }
 //
@@ -99,6 +112,7 @@ HoleActive:
 // or not.  
 HoleStep:
 {
+/* NPS DEBUGGING
     lda hole_count
     bne HoleStillStepping
     rts
@@ -171,12 +185,15 @@ HoleStillAlive:
     sta hole_count    
 
 HoleStepDone:
+*/
     rts
 y_vel_table: 
     .byte $00
     .byte $01
     .byte $FF
     .byte $00    
+
+
 }
 // HoleStep End.    
 //////////////////////////////////////////////////////////////////////////////
@@ -212,6 +229,7 @@ HoleCleanup:
 // the sprites location in memory is updated
 HoleUpdateRect:
 {
+/* NPS DEBUGGING
     /////////// put hole sprite's rectangle, use the hitbox not full sprite
     nv_xfer16_mem_mem(blackhole.x_loc, hole_x_left)
     nv_adc16x_mem16x_mem8u(hole_x_left, blackhole.hitbox_right, hole_x_right)
@@ -222,6 +240,7 @@ HoleUpdateRect:
     sta hole_y_top+1
     nv_adc16x_mem16x_mem8u(hole_y_top, blackhole.hitbox_bottom, hole_y_bottom)
     nv_adc16x_mem16x_mem8u(hole_y_top, blackhole.hitbox_top, hole_y_top)
+*/
     rts
 }
 // HoleUpdateRect - end
@@ -231,19 +250,32 @@ HoleUpdateRect:
 // Namespace with everything related to asteroid 5
 .namespace blackhole
 {
-        .var info = nv_sprite_info_struct("black_hole", 6,
-                                          200, 100, -1, 0, // init x, y, VelX, VelY 
+        .var info = nv_sprite_info_struct("black_hole", //sprite name
+                                          6,  // system sprite number
+                                          NvBuildClosest124s(200), // x loc 
+                                          NvBuildClosest124s(100), // y loc
+                                          NvBuildClosest124s(-1),  // vel x
+                                          NvBuildClosest124s(0),   // vel y 
                                           sprite_hole_0, 
                                           sprite_extra, 
-                                          1, 0, 1, 0, // bounce on top, left, bottom, right  
-                                          0, 0, 0, 0, // min/max top, left, bottom, right
+                                          1, // action top 
+                                          0, // action left
+                                          1, // action bottom
+                                          0, // action right  
+                                          NvBuildClosest124s(0), // min top
+                                          NvBuildClosest124s(0),   // min left
+                                          NvBuildClosest124s(0),   // max bottom
+                                          NvBuildClosest124s(0),   // max right
                                           0,            // sprite enabled 
-                                          0, 0, 24, 21) // hitbox left, top, right, bottom
+                                          0,  // hitbox left 
+                                          0,  // hit boxtop
+                                          24, // hitbox right
+                                          21) // hitbox bottom
 
-        .label x_loc = info.base_addr + NV_SPRITE_X_OFFSET
-        .label y_loc = info.base_addr + NV_SPRITE_Y_OFFSET
-        .label x_vel = info.base_addr + NV_SPRITE_VEL_X_OFFSET
-        .label y_vel = info.base_addr + NV_SPRITE_VEL_Y_OFFSET
+        .label x_loc_fp124s = info.base_addr + NV_SPRITE_X_FP124S_OFFSET
+        .label y_loc_fp124s = info.base_addr + NV_SPRITE_Y_FP124S_OFFSET
+        .label x_vel_fp124s = info.base_addr + NV_SPRITE_VEL_X_FP124S_OFFSET
+        .label y_vel_fp124s = info.base_addr + NV_SPRITE_VEL_Y_FP124S_OFFSET
         .label data_ptr = info.base_addr + NV_SPRITE_DATA_PTR_OFFSET
         .label sprite_num = info.base_addr + NV_SPRITE_NUM_OFFSET
         .label hitbox_left = info.base_addr + NV_SPRITE_HITBOX_LEFT_OFFSET
@@ -279,11 +311,11 @@ Setup:
 // to move in the sprite registsers (and have screen reflect it) call the 
 // SetLocationFromExtraData subroutine.
 MoveInExtraData:
-        //lda #>info.base_addr
-        //ldx #<info.base_addr
-        //jsr NvSpriteMoveInExtra
-        //rts
-        nv_sprite_move_any_direction_sr(info)
+        lda #>info.base_addr
+        ldx #<info.base_addr
+        jsr NvSpriteMoveInExtra
+        rts
+        //nv_sprite_move_any_direction_sr(info)
 
 Enable:
         lda #>info.base_addr

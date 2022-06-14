@@ -37,6 +37,8 @@ WindInit:
 // subroutine to start the wind effect
 .const WIND_FRAMES = 5
 WindStart:
+{
+/* NPS DEBUGGING
     lda wind_count
     bne WindAlreadyStarted
     lda #$00
@@ -46,8 +48,9 @@ WindStart:
     sta wind_count
     jsr WindGlimmerStart
 WindAlreadyStarted:
+*/
     rts
-
+}
 
 //////////////////////////////////////////////////////////////////////////////
 // subroutine to call once per raster frame while wind is happening
@@ -58,7 +61,8 @@ WindAlreadyStarted:
 // or not.  It is possible for wind_count to get to zero before 
 // wind_glimmer_count is zero so its not sufficient to just check wind_count
 WindStep:
-
+{
+/* NPS DEBUGGING
 WindCheckLeftShip1:
     lda ship_1.x_vel
     bpl WindCheckLeftShip2  // ship1 x_vel + so not going backwards
@@ -154,7 +158,9 @@ WindSetVelShip2:
 
 WindDoneVelShip2:
 WindDoneStep:
+*/
     rts
+}
 // WindStep End.    
 //////////////////////////////////////////////////////////////////////////////
 
@@ -163,12 +169,14 @@ WindDoneStep:
 // subroutine to call to force the wind to stop if it is active. if not 
 // active then should have no effect
 WindForceStop:
+{
     lda #$00
     sta wind_count
     sta wind_ship_1_done
     sta wind_ship_2_done
     jsr WindGlimmerForceStop
     rts
+}
 // WindForceStop End
 //////////////////////////////////////////////////////////////////////////////
 
@@ -177,8 +185,10 @@ WindForceStop:
 // subroutine to call at end of program when done with all other wind
 // data and routines.
 WindCleanup:
+{
     jsr WindForceStop
     rts
+}
 // WindCleanup End
 //////////////////////////////////////////////////////////////////////////////
 

@@ -33,6 +33,7 @@ ShipDeathInit:
 // will step each ship that is dead
 ShipDeathStep: 
 {
+/*  NPS DEBUGGING
 ShipDeathStepTryShip1:    
     lda ship_1_death_count
     beq ShipDeathStepTryShip2
@@ -44,6 +45,7 @@ ShipDeathStepTryShip1:
     jsr Ship2DeathStep
 
 ShipDeathStepDone:
+*/
     rts
 
 }
@@ -55,6 +57,7 @@ ShipDeathStepDone:
 //
 Ship1DeathStep:
 {
+/* NPS DEBUGGING
     lda ship_1_death_count
     bne ShipDeathFramesStart
     rts
@@ -89,6 +92,7 @@ ShipDeathDecCount:
     sta ship_1.y_vel
 
 ShipDeathCountContinues:
+*/
     rts
 }
 // Ship1DeathStep end   
@@ -98,6 +102,7 @@ ShipDeathCountContinues:
 //
 Ship2DeathStep:
 {
+/* NPS DEBUGGING
     lda ship_2_death_count
     bne Ship2DeathFramesStart
     rts
@@ -131,6 +136,7 @@ Ship2DeathDecCount:
     sta ship_2.y_vel
 
 Ship2DeathCountContinues:
+*/
     rts
 }
 // Ship2DeathStep end   
@@ -145,6 +151,7 @@ Ship2DeathCountContinues:
 //   accum: set to 1 or 2 for ship 1 or ship 2
 ShipDeathStart: 
 {
+/* NPS DEBUGGING
 ShipDeathStartTryShip1:
     cmp #1
     bne ShipDeathStartTryShip2
@@ -164,6 +171,7 @@ ShipDeathStartTryShip2:
     sta ship_2_death_pushed_left_min
     jsr ship_2.SetColorDead
 ShipDeathStartDone:
+*/
     rts
 }
 // ShipDeathStart end subroutine
@@ -173,16 +181,20 @@ ShipDeathStartDone:
 //////////////////////////////////////////////////////////////////////////////
 // Call to force effect to stop if it is active
 ShipDeathForceStop: 
+{
     lda #$00
     sta ship_1_death_count
     sta ship_2_death_count
     rts
+}
 // ShipDeathForceStop end
 //////////////////////////////////////////////////////////////////////////////
 
 //////////////////////////////////////////////////////////////////////////////
 // Call at end of program after main loop to clean up
 ShipDeathCleanup: 
+{
     rts
+}
 // ShipDeathCleanup end
 //////////////////////////////////////////////////////////////////////////////
